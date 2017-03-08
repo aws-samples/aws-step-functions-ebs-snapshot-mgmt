@@ -1,0 +1,327 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: ''
+Parameters:
+  Retention:
+    Description: 'The number of snapshots you want to keep per volume in your DR Region.'
+    Type: 'String'
+    Default: '1'
+  FunctionNameSuffix:
+    Description: 'Suffix to append to the Lambda functions.'
+    Type: 'String'
+    Default: ''
+Resources:
+  StatesExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: !Sub states.${AWS::Region}.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: StatesExecutionPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource: "*"
+  ExecuteStateMachineRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            -
+              Sid: "AllowCWEServiceToAssumeRole"
+              Effect: "Allow"
+              Action:
+                - "sts:AssumeRole"
+              Principal:
+                Service:
+                  - "events.amazonaws.com"
+        Path: "/"
+        Policies:
+          -
+            PolicyName: "ExecuteStateMachine"
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                -
+                  Effect: "Allow"
+                  Action:
+                    - "states:StartExecution"
+                  Resource: "*"
+  SNSNotificationIAMRole:
+        Type: "AWS::IAM::Role"
+        Properties:
+            AssumeRolePolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                -
+                  Sid: "AllowLambdaServiceToAssumeRole"
+                  Effect: "Allow"
+                  Action:
+                    - "sts:AssumeRole"
+                  Principal:
+                    Service:
+                      - "lambda.amazonaws.com"
+            Path: "/"
+            Policies:
+              -
+                PolicyName: "SNSNotification"
+                PolicyDocument:
+                  Version: "2012-10-17"
+                  Statement:
+                    -
+                      Effect: "Allow"
+                      Action:
+                        - "sns:Publish"
+                      Resource: !Ref NotificationTopic
+              -
+                PolicyName: "WriteToCWLogs"
+                PolicyDocument:
+                  Version: "2012-10-17"
+                  Statement:
+                    -
+                      Effect: "Allow"
+                      Action:
+                        - "logs:CreateLogStream"
+                        - "logs:CreateLogGroup"
+                        - "logs:PutLogEvents"
+                      Resource: "*"
+  SnapshotManagementIAMRole:
+        Type: "AWS::IAM::Role"
+        Properties:
+            AssumeRolePolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                -
+                  Sid: "AllowLambdaServiceToAssumeRole"
+                  Effect: "Allow"
+                  Action:
+                    - "sts:AssumeRole"
+                  Principal:
+                    Service:
+                      - "lambda.amazonaws.com"
+            Path: "/"
+            Policies:
+              -
+                PolicyName: "SnapshotDescribeCopyPolicy"
+                PolicyDocument:
+                  Version: "2012-10-17"
+                  Statement:
+                    -
+                      Effect: "Allow"
+                      Action:
+                        - "ec2:describeSnapshots"
+                        - "ec2:copySnapshot"
+                        - "ec2:createTags"
+                      Resource: "*"
+              -
+                PolicyName: "WriteToCWLogs"
+                PolicyDocument:
+                  Version: "2012-10-17"
+                  Statement:
+                    -
+                      Effect: "Allow"
+                      Action:
+                        - "logs:CreateLogStream"
+                        - "logs:CreateLogGroup"
+                        - "logs:PutLogEvents"
+                      Resource: "*"
+  SnapshotDeletionIAMRole:
+        Type: "AWS::IAM::Role"
+        Properties:
+            AssumeRolePolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                -
+                  Sid: "AllowLambdaServiceToAssumeRole"
+                  Effect: "Allow"
+                  Action:
+                    - "sts:AssumeRole"
+                  Principal:
+                    Service:
+                      - "lambda.amazonaws.com"
+            Path: "/"
+            Policies:
+              -
+                PolicyName: "SnapshotDeletionPolicy"
+                PolicyDocument:
+                  Version: "2012-10-17"
+                  Statement:
+                    -
+                      Effect: "Allow"
+                      Action: "ec2:deleteSnapshot"
+                      Resource: "*"
+              -
+                PolicyName: "WriteToCWLogs"
+                PolicyDocument:
+                  Version: "2012-10-17"
+                  Statement:
+                    -
+                      Effect: "Allow"
+                      Action:
+                        - "logs:CreateLogStream"
+                        - "logs:CreateLogGroup"
+                        - "logs:PutLogEvents"
+                      Resource: "*"
+
+  TagSnapshotCopy:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: TagSnapshotCopy.handler
+      Runtime: nodejs4.3
+      FunctionName: !Sub "TagSnapshotCopy-${FunctionNameSuffix}"
+      CodeUri: .
+      Role: !GetAtt SnapshotManagementIAMRole.Arn
+      Description: >-
+        Tags any new snapshot copies created
+      MemorySize: 128
+      Timeout: 15
+  CountSnapshots:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: CountSnapshots.handler
+      Runtime: nodejs4.3
+      FunctionName: !Sub "CountSnapshots-${FunctionNameSuffix}"
+      CodeUri: .
+      Role: !GetAtt SnapshotManagementIAMRole.Arn
+      Description: >-
+        Count how many current snapshots exist for the volume ID and return the snapshot data
+      MemorySize: 128
+      Timeout: 15
+  DeleteOldSnapshots:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: DeleteOldSnapshots.handler
+      Runtime: nodejs4.3
+      FunctionName: !Sub "DeleteOldSnapshots-${FunctionNameSuffix}"
+      CodeUri: .
+      Role: !GetAtt SnapshotDeletionIAMRole.Arn
+      Description: >-
+        Deletes any snapshots beyond the retention period.
+      MemorySize: 128
+      Timeout: 15
+      Environment:
+        Variables:
+          retentionPeriod: !Ref Retention
+  NotifyUser:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: Notification.handler
+      Runtime: nodejs4.3
+      FunctionName: !Sub "Notification-${FunctionNameSuffix}"
+      CodeUri: .
+      Role: !GetAtt SNSNotificationIAMRole.Arn
+      Description: >-
+        Puts notification to topic regarding errors in snapshot management flow
+      MemorySize: 128
+      Timeout: 15
+      Environment:
+        Variables:
+          notificationTopic: !Ref NotificationTopic
+  NotificationTopic:
+    Type: "AWS::SNS::Topic"
+    Properties:
+      TopicName: "SnapshotMgmtTopic"
+  SnapshotMgmtStateMachine:
+    Type: 'AWS::StepFunctions::StateMachine'
+    Properties:
+      DefinitionString: !Sub
+        |-
+          {
+            "StartAt": "TagSnapshot",
+            "States": {
+              "TagSnapshot": {
+                "Type": "Task",
+                "Resource": "${TagSnapshotCopy.Arn}",
+                "OutputPath": "$",
+                "ResultPath": "$.originalVolumeId",
+                "TimeoutSeconds": 15,
+                "Catch": [
+                  {
+                    "ErrorEquals": ["States.ALL"],
+                    "ResultPath": "$.errorMsg",
+                    "Next": "NotifyUser"
+                  }
+                ],
+                "Next": "EvaluateContinue"
+              },
+              "EvaluateContinue": {
+                "Type": "Choice",
+                "Choices": [
+                  {
+                    "StringEquals": "VOLUME_NOT_TAGGED",
+                    "Variable": "$.originalVolumeId",
+                    "Next": "SuccessState"
+                  }
+                ],
+                "Default": "RetrieveNumberOfSnapshots"
+              },
+              "RetrieveNumberOfSnapshots": {
+                "Type": "Task",
+                "Resource": "${CountSnapshots.Arn}",
+                "OutputPath": "$",
+                "ResultPath": "$.snapshotList",
+                "TimeoutSeconds": 20,
+                "Catch": [
+                  {
+                    "ErrorEquals": ["States.ALL"],
+                    "ResultPath": "$.errorMsg",
+                    "Next": "NotifyUser"
+                  }
+                ],
+                "Next": "EvaluateSnapshotDeletion"
+              },
+              "EvaluateSnapshotDeletion": {
+                "Type": "Choice",
+                "Choices": [
+                  {
+                    "NumericGreaterThan": ${Retention},
+                    "Variable": "$.snapshotList.numSnapshots",
+                    "Next": "CleanupSnapshotsPastRetention"
+                  }
+                ],
+                "Default": "SuccessState"
+              },
+              "CleanupSnapshotsPastRetention": {
+                "Type": "Task",
+                "Resource": "${DeleteOldSnapshots.Arn}",
+                "TimeoutSeconds": 60,
+                "Catch": [
+                  {
+                    "ErrorEquals": ["States.ALL"],
+                    "ResultPath": "$.errorMsg",
+                    "Next": "NotifyUser"
+                  }
+                ],
+                "End": true
+              },
+              "NotifyUser": {
+                "Type": "Task",
+                "Resource": "${NotifyUser.Arn}",
+                "TimeoutSeconds": 60,
+                "End": true
+              },
+              "SuccessState" : {
+                "Type" : "Succeed",
+                "OutputPath": "$"
+              }
+            }
+          }
+
+      RoleArn: !GetAtt StatesExecutionRole.Arn
+Outputs:
+  StateMachineArn:
+    Description: ARN for the Step Functions state machine
+    Value: !Ref SnapshotMgmtStateMachine
+  CWETriggerRoleArn:
+    Description: ARN for the IAM role to execute the state machine
+    Value: !GetAtt ExecuteStateMachineRole.Arn
