@@ -15,65 +15,14 @@ Because the example involves resources in two regions, the primary region and DR
 
 The first stack is executed in the primary region. The **Launch Stack** button below will launch the template for the primary region in the eu-west-1 (Ireland) region in your account:
 
-[![Launch EBS Snapshot Management into Ireland with CloudFormation](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/images/cloudformation-launch-stack-button.png)](https://console.aws.amazon.com/cloudformation/home?region=eu-west-1#/stacks/new?stackName=step-functions-ebs-mgmt-primary&templateURL=https://s3-eu-west-1.amazonaws.com/step-functions-ref-archs-eu-west-1/PrimaryRegionTemplate.json)
+[![Launch EBS Snapshot Management into Ireland with CloudFormation](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/images/cloudformation-launch-stack-button.png)](https://console.aws.amazon.com/cloudformation/home?region=eu-west-1#/stacks/new?stackName=step-functions-ebs-mgmt-primary&templateURL=https://s3-eu-west-1.amazonaws.com/step-functions-ref-archs-eu-west-1/PrimaryRegionTemplateV2.json)
 
 The second stack is executed in the DR region. The **Launch Stack** button below will launch the template for the DR region in the us-east-2 (Ohio) region in your account:
 
-[![Launch EBS Snapshot Management into Ohio with CloudFormation](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/images/cloudformation-launch-stack-button.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-2#/stacks/new?stackName=step-functions-ebs-mgmt-dr&templateURL=https://s3.us-east-2.amazonaws.com/step-functions-ref-archs-east-2/DRRegionTemplate.json)
+[![Launch EBS Snapshot Management into Ohio with CloudFormation](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/images/cloudformation-launch-stack-button.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-2#/stacks/new?stackName=step-functions-ebs-mgmt-dr&templateURL=https://s3.us-east-2.amazonaws.com/step-functions-ref-archs-east-2/DRRegionTemplateV2.json)
 
-After the stack is successfully created, you need to finish the configuration by creating the CloudWatch Events Rules that trigger the state machines.
+After the stack is successfully created, you can test the configuration by following the instructions in the **Testing the example** section.
 
-### Create Amazon CloudWatch Event Rules
-Now you'll need to setup the Amazon CloudWatch Event Rule to trigger the AWS Step Functions state machine. To do this, you'll need four values that are outputs of the two CloudFormation stacks created previously.  
-
-In the AWS CloudFormation console, in the **primary region**, select the stack and select the Outputs tab.  
-
-Using your favorite editor, create a file called **primaryRegionTargets.json**. Paste in the code below, replacing the values indicated with the values from the Outputs section of the AWS CloudFormation console in the primary region.
-```
-[
-      {
-          "Id":"1",
-          "Arn":"<StateMachineArn>",
-          "RoleArn":"<CWETriggerRoleArn>"
-      }
-]
-
-```
-Then run the commands to create the Rule and add the targets in the primary region.
-
-In the following commands you'll need to replace the following:
-**<PRIMARY_REGION>** - Replace with primary region (i.e. formatted as us-east-1, etc.)
-
-```
-aws events put-rule --name StateTest --event-pattern file://eventPrimary.json --region <PRIMARY_REGION>
-
-aws events put-targets --rule StateTest --targets file://primaryRegionTargets.json --region <PRIMARY_REGION>
-```
-
-In the AWS CloudFormation console, in the **DR region**, select the stack and select the Outputs tab.  
-
-Using your favorite editor, create a file called **DRRegionTargets.json**. Paste in the code below, replacing the values indicated with the values from the Outputs section of the AWS CloudFormation console in the DR region.
-```
-[
-      {
-          "Id":"1",
-          "Arn":"<StateMachineArn>",
-          "RoleArn":"<CWETriggerRoleArn>"
-      }
-]
-
-```
-
-Then run the commands to create the Rule and add the targets in the DR region.
-
-In the following commands you'll need to replace the following:
-**<DR_REGION>** - Replace with DR region (i.e. formatted as us-east-1, etc.)
-
-```
-aws events put-rule --name StateTest --event-pattern file://eventDR.json --region <PRIMARY_REGION>
-
-aws events put-targets --rule StateTest --targets file://DRRegionTargets.json --region <PRIMARY_REGION>
-```
 
 ## Configuration Options
 
@@ -94,7 +43,7 @@ snapshot management will take place for all snapshot creations.  If you would li
  You will modify the tagKeyValue Default value in that file.
  ```
  tagKeyValue:
-   Description: 'The value for the key tag that you want all volumes to have for the snapshot managment to apply.'
+   Description: 'The value for the key tag that you want all volumes to have for the snapshot management to apply.'
    Type: 'String'
    Default: 'none'
  ```
@@ -116,8 +65,7 @@ This will start the state machine. You can see the completion of the state machi
 
 To remove all resources created by this example, do the following:
 
-1. Delete **Amazon CloudWatch Events** rules created in the primary and DR regions.
-2. Delete the **AWS CloudFormation** stacks in the primary and DR regions.
+1. Delete the **AWS CloudFormation** stacks in the primary and DR regions.
 
 ## How to customize and run the architecture in your account
 
@@ -169,4 +117,4 @@ aws cloudformation package --template-file DR_RegionTemplate.yaml --s3-bucket <D
 
 aws cloudformation deploy --template-file tempDR.yaml --stack-name DRRegionSnapshotManagement --capabilities CAPABILITY_IAM --region <DR_REGION>
 ```
-At this point you can follow along with the section above titled **Create Amazon CloudWatch Event Rules** to finish out the configuration.
+At this point the stacks will be updated and you can begin creating snapshots.

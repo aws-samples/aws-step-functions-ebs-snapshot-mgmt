@@ -1,7 +1,0 @@
-{
-  "source":["aws.ec2"],
-  "detail-type": ["EBS Snapshot Notification"],
-  "detail": {
-      "event":["copySnapshot"]
-    }
-}

@@ -318,6 +318,51 @@ Resources:
           }
 
       RoleArn: !GetAtt StatesExecutionRole.Arn
+  ExecuteStateMachineRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            -
+              Sid: "AllowCWEServiceToAssumeRole"
+              Effect: "Allow"
+              Action:
+                - "sts:AssumeRole"
+              Principal:
+                Service:
+                  - "events.amazonaws.com"
+        Path: "/"
+        Policies:
+          -
+            PolicyName: "ExecuteStateMachine"
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                -
+                  Effect: "Allow"
+                  Action:
+                    - "states:StartExecution"
+                  Resource: "*"
+  CloudWatchEventRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Description: "Rule to invoke snapshot mgmt state machine upon snapshot completion"
+      EventPattern:
+        source:
+          - "aws.ec2"
+        detail-type:
+          - "EBS Snapshot Notification"
+        detail:
+          event:
+            - "copySnapshot"
+      Name: "EBS_Snapshot_Mgmt"
+      State: "ENABLED"
+      Targets:
+        -
+          Arn: !Ref SnapshotMgmtStateMachine
+          Id: SFN_Target
+          RoleArn: !GetAtt ExecuteStateMachineRole.Arn
 Outputs:
   StateMachineArn:
     Description: ARN for the Step Functions state machine
