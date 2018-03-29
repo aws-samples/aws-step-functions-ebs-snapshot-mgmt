@@ -74,7 +74,7 @@ To remove all resources created by this example, do the following:
 First clone the repo:
 ```
 # Clone it from github
-git clone https://github.com/awslabs/serverless-stepfunctions-ebs-snapshots.git
+git clone https://github.com/aws-samples/aws-step-functions-ebs-snapshot-mgmt.git
 ```
 
 Make the edits you want to make. For instance, if you want to modify the DR region (i.e. not use Ohio), then in the PrimaryRegionTemplate.yaml file, edit the default value for the DRRegion parameter to the region you would prefer to use:
