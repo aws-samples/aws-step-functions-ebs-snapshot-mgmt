@@ -186,7 +186,7 @@ Resources:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: TagSnapshots.handler
-      Runtime: nodejs4.3
+      Runtime: nodejs8.10
       FunctionName: !Sub "TagSnapshots-${FunctionNameSuffix}"
       CodeUri: .
       Role: !GetAtt SnapshotManagementIAMRole.Arn
@@ -201,7 +201,7 @@ Resources:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: CountSnapshots.handler
-      Runtime: nodejs4.3
+      Runtime: nodejs8.10
       FunctionName: !Sub "CountSnapshots-${FunctionNameSuffix}"
       CodeUri: .
       Role: !GetAtt SnapshotManagementIAMRole.Arn
@@ -216,7 +216,7 @@ Resources:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: CopySnapshotToDR.handler
-      Runtime: nodejs4.3
+      Runtime: nodejs8.10
       FunctionName: !Sub "CopySnapshotToDRRegion-${FunctionNameSuffix}"
       CodeUri: .
       Role: !GetAtt SnapshotManagementIAMRole.Arn
@@ -231,7 +231,7 @@ Resources:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: DeleteOldSnapshots.handler
-      Runtime: nodejs4.3
+      Runtime: nodejs8.10
       FunctionName: !Sub "DeleteOldSnapshots-${FunctionNameSuffix}"
       CodeUri: .
       Role: !GetAtt SnapshotDeletionIAMRole.Arn
@@ -246,7 +246,7 @@ Resources:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: Notification.handler
-      Runtime: nodejs4.3
+      Runtime: nodejs8.10
       FunctionName: !Sub "Notification-${FunctionNameSuffix}"
       CodeUri: .
       Role: !GetAtt SNSNotificationIAMRole.Arn
