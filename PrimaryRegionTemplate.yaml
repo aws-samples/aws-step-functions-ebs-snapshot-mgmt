@@ -5,19 +5,19 @@ Parameters:
   tagKeyValue:
     Description: 'The value for the key tag that you want all volumes to have for the snapshot managment to apply.'
     Type: 'String'
-    Default: 'none'
+    Default: 'SnapshotCreatorDLM'
   DRRegion:
     Description: 'The DR region where snapshots will be copied (This should be a different region from the region you are running this CloudFormation stack in.'
     Type: 'String'
-    Default: 'us-east-2'
+    Default: 'eu-west-2'
   Retention:
     Description: 'The number of snapshots you want to keep per volume.'
     Type: 'String'
-    Default: '7'
+    Default: '30'
   FunctionNameSuffix:
     Description: 'Suffix to append to the Lambda functions.'
     Type: 'String'
-    Default: ''
+    Default: 'ebs-snapshot-mgmt-dr'
 Resources:
   StatesExecutionRole:
     Type: "AWS::IAM::Role"

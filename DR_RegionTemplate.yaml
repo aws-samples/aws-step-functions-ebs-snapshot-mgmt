@@ -5,11 +5,11 @@ Parameters:
   Retention:
     Description: 'The number of snapshots you want to keep per volume in your DR Region.'
     Type: 'String'
-    Default: '1'
+    Default: '30'
   FunctionNameSuffix:
     Description: 'Suffix to append to the Lambda functions.'
     Type: 'String'
-    Default: ''
+    Default: 'ebs-snapshot-mgmt-dr'
 Resources:
   StatesExecutionRole:
     Type: "AWS::IAM::Role"
