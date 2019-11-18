@@ -5,19 +5,23 @@ Parameters:
   tagKeyValue:
     Description: 'The value for the key tag that you want all volumes to have for the snapshot managment to apply.'
     Type: 'String'
-    Default: 'none'
+    Default: 'CopySnapshotsToDRRegion'
   DRRegion:
     Description: 'The DR region where snapshots will be copied (This should be a different region from the region you are running this CloudFormation stack in.'
     Type: 'String'
-    Default: 'us-east-2'
+    Default: 'us-west-2'
   Retention:
     Description: 'The number of snapshots you want to keep per volume.'
     Type: 'String'
-    Default: '7'
+    Default: '30'
   FunctionNameSuffix:
     Description: 'Suffix to append to the Lambda functions.'
     Type: 'String'
-    Default: ''
+    Default: 'ebs-snapshot-mgmt-dr'
+  NodeVersion:
+    Description: 'Node Runtime version.'
+    Type: 'String'
+    Default: 'nodejs10.x'
 Resources:
   StatesExecutionRole:
     Type: "AWS::IAM::Role"
@@ -186,7 +190,7 @@ Resources:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: TagSnapshots.handler
-      Runtime: nodejs4.3
+      Runtime: !Ref NodeVersion
       FunctionName: !Sub "TagSnapshots-${FunctionNameSuffix}"
       CodeUri: .
       Role: !GetAtt SnapshotManagementIAMRole.Arn
@@ -201,7 +205,7 @@ Resources:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: CountSnapshots.handler
-      Runtime: nodejs4.3
+      Runtime: !Ref NodeVersion
       FunctionName: !Sub "CountSnapshots-${FunctionNameSuffix}"
       CodeUri: .
       Role: !GetAtt SnapshotManagementIAMRole.Arn
@@ -216,7 +220,7 @@ Resources:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: CopySnapshotToDR.handler
-      Runtime: nodejs4.3
+      Runtime: !Ref NodeVersion
       FunctionName: !Sub "CopySnapshotToDRRegion-${FunctionNameSuffix}"
       CodeUri: .
       Role: !GetAtt SnapshotManagementIAMRole.Arn
@@ -231,7 +235,7 @@ Resources:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: DeleteOldSnapshots.handler
-      Runtime: nodejs4.3
+      Runtime: !Ref NodeVersion
       FunctionName: !Sub "DeleteOldSnapshots-${FunctionNameSuffix}"
       CodeUri: .
       Role: !GetAtt SnapshotDeletionIAMRole.Arn
@@ -246,7 +250,7 @@ Resources:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: Notification.handler
-      Runtime: nodejs4.3
+      Runtime: !Ref NodeVersion
       FunctionName: !Sub "Notification-${FunctionNameSuffix}"
       CodeUri: .
       Role: !GetAtt SNSNotificationIAMRole.Arn
