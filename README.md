@@ -108,7 +108,7 @@ aws cloudformation deploy --template-file tempPrimary.yaml --stack-name PrimaryR
 
 These next set of commands perform the same actions for the DR region.
 ```
-# Create an S3 bucket for staging your code in the primary region by running
+# Create an S3 bucket for staging your code in the DR region by running
 aws s3api create-bucket --bucket <DR_UNIQUE_BUCKET_NAME> --region <DR_REGION> --create-bucket-configuration LocationConstraint=<DR_REGION>
 # If your DR region is us-east-1 run this command instead
 aws s3api create-bucket --bucket <DR_UNIQUE_BUCKET_NAME> --region <DR_REGION>
